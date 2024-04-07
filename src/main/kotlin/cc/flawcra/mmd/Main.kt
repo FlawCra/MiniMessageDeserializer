@@ -34,6 +34,15 @@ fun main() {
                 ctx.json(Response(success = false, data = mapOf("msg" to "Error parsing message: ${e.message}")))
             }
         }
+        post("/serialize") { ctx ->
+            try {
+                val input = ctx.bodyAsClass(InputMessage::class.java)
+                val result = parseMessage(input.message, true)
+                ctx.json(Response(success = true, data = mapOf("result" to result)))
+            } catch (e: Exception) {
+                ctx.json(Response(success = false, data = mapOf("msg" to "Error parsing message: ${e.message}")))
+            }
+        }
     }.start(port)
 }
 
@@ -80,11 +89,14 @@ private fun preprocessForGradient(input: String): String {
  * @param input the input message string to be parsed
  * @return the serialized string representation of the parsed message
  */
-fun parseMessage(input: String): String {
-    val serialized = preprocessForGradient(input)
+fun parseMessage(input: String, serialize: Boolean = false): String {
     val mm = MiniMessage.miniMessage()
-    val message = mm.deserialize(serialized)
-    return GsonComponentSerializer.gson().serialize(message)
+    if (serialize) {
+        return mm.serialize(GsonComponentSerializer.gson().deserialize(input))
+    }
+
+    val serialized = preprocessForGradient(input)
+    return GsonComponentSerializer.gson().serialize(mm.deserialize(serialized))
 }
 
 /**
